@@ -299,13 +299,19 @@ def train_prepossess(model):
         
 class Word2VecKeras(gensim.models.word2vec.Word2Vec):
 
+    def __init__(self, batch_size = 128, sub_batch_size = 16, keras_verbose = 1, *args, **kwargs):
+        self.batch_size = batch_size
+        self.sub_batch_size = sub_batch_size
+        self.keras_verbose = keras_verbose
+        super(Word2VecKeras, self).__init__(*args, **kwargs)
+
     def compare_w2v(self,w2v2):
         return np.mean([np.linalg.norm(self[w]-w2v2[w]) for w in self.vocab if w in w2v2.vocab])
 
     def train(self, sentences, total_words=None, word_count=0,
                total_examples=None, queue_factor=2, report_delay=1,
-               batch_size=128 #512 #256
-               ,sub_batch_size=16 #32 #128 #128  #256 #128 #512 #256 #1
+               batch_size=None #512 #256
+               ,sub_batch_size=None #32 #128 #128  #256 #128 #512 #256 #1
               ):
         train_prepossess(self)
         
@@ -342,6 +348,18 @@ class Word2VecKeras(gensim.models.word2vec.Word2Vec):
 
         vocab_size=len(self.vocab)
         
+        if batch_size is None:
+            if not self.batch_size is None:
+                batch_size = self.batch_size
+            else:
+                batch_size = 128
+
+        if sub_batch_size is None:
+            if not self.sub_batch_size is None:
+                sub_batch_size = self.sub_batch_size
+            else:
+                sub_batch_size = 16
+        
         sub_batch_size_update=False
         if hasattr(self,'sub_batch_size'):
             if self.sub_batch_size != sub_batch_size :
@@ -361,7 +379,7 @@ class Word2VecKeras(gensim.models.word2vec.Word2Vec):
                 
             gen=train_batch_sg(self, sentences, sub_batch_size=sub_batch_size,batch_size=batch_size)
             self.kerasmodel.nodes['embedding'].set_weights([self.syn0])
-            self.kerasmodel.fit_generator(gen,samples_per_epoch=samples_per_epoch, nb_epoch=self.iter, verbose=0)
+            self.kerasmodel.fit_generator(gen,samples_per_epoch=samples_per_epoch, nb_epoch=self.iter, verbose=self.keras_verbose)
         else:
             samples_per_epoch=int(sum(map(len,sentences)))
             #samples_per_epoch=max(1,int(self.iter*self.window*2*sum(map(len,sentences))/sub_batch_size))
@@ -372,7 +390,7 @@ class Word2VecKeras(gensim.models.word2vec.Word2Vec):
                                                        model=self,cbow_mean=self.cbow_mean
                                                        )
             gen=train_batch_cbow(self, sentences, self.alpha, work=None,batch_size=batch_size)
-            self.kerasmodel.fit_generator(gen,samples_per_epoch=samples_per_epoch, nb_epoch=self.iter,verbose=0)
+            self.kerasmodel.fit_generator(gen,samples_per_epoch=samples_per_epoch, nb_epoch=self.iter,verbose=self.keras_verbose)
         self.syn0=self.kerasmodel.nodes['embedding'].get_weights()[0]
         if self.negative>0 and self.hs :
             syn1tmp=self.kerasmodel.nodes['embedpoint'].get_weights()[0]
