@@ -114,8 +114,8 @@ def build_keras_model_sg(index_size,vector_size,
                          model=None):
 
     kerasmodel = Graph()
-    kerasmodel.add_input(name='point' , input_shape=(1,), dtype=int)
-    kerasmodel.add_input(name='index' , input_shape=(1,), dtype=int)
+    kerasmodel.add_input(name='point' , input_shape=(1,), dtype='int')
+    kerasmodel.add_input(name='index' , input_shape=(1,), dtype='int')
     kerasmodel.add_node(Embedding(index_size, vector_size, input_length=sub_batch_size,weights=[model.syn0]),name='embedding', input='index')
     kerasmodel.add_node(Embedding(context_size, vector_size, input_length=sub_batch_size,weights=[model.keras_syn1]),name='embedpoint', input='point')
     kerasmodel.add_node(Lambda(lambda x:x.sum(2))   , name='merge',inputs=['embedding','embedpoint'], merge_mode='mul')
